@@ -1,5 +1,5 @@
 name: iCloud Shared Album Sync
-slug: icloud-shared-album-sync
+slug: icloud_shared_album_sync
 description: Sync one or more PUBLIC iCloud Shared Albums to /media or /config/www. Generates index.json, latest.jpg, and prunes by age/count. Optional mirror mode.
 version: "0.4.3"  # Updated to match current version
 arch:
