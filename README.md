@@ -1,4 +1,4 @@
-(icloud-shared-album-sync/icon.png)
+<img src="https://github.com/BZPJoe/icloud-shared-album-sync/blob/main/logo.png" alt="iCloud Shared Album Sync"  width=312>
 
 iCloud Shared Album Sync Add-on
 This Home Assistant add-on syncs public iCloud Shared Albums to /media or /config/www. It supports multiple albums, pruning by age or count, and mirroring deletions from the album.
