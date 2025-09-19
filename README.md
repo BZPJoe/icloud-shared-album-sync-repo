@@ -38,4 +38,4 @@ Files in /config/www can be served via Lovelace with web_prefix.
 Use mirror_missing cautiously, as it deletes local files.
 
 Support
-File issues at https://github.com/BZPJoe/icloud-shared-album-sync-repo/tree/main/icloud-shared-album-sync.
+File issues at https://github.com/BZPJoe/icloud-shared-album-sync-repo/issues.
