@@ -1,0 +1,9 @@
+{
+  "keep_days": 0,
+  "max_files": 500,
+  "timeout": 40,
+  "interval_minutes": 180,
+  "debug": false,
+  "mirror_missing": true,
+  "albums": "- name: Family Photos\n  shared_url: \"https://www.icloud.com/sharedalbum/#XXXXXXXXXXXXXXX\"\n  dest_mode: media\n  media_subfolder: \"iCloud\"\n  album_subfolder: family\n  latest_filename: \"latest.jpg\"\n  index_filename: \"index.json\""
+}
