@@ -1,0 +1,11 @@
+{
+  "name": "K1/K1 Max WebSocket \u2192 MQTT Bridge",
+  "url": "https://github.com/YOUR_USERNAME/k1max-ws-bridge",
+  "maintainer": "YOUR NAME <you@example.com>",
+  "source": "https://github.com/YOUR_USERNAME/k1max-ws-bridge",
+  "arch": [
+    "aarch64",
+    "amd64"
+  ],
+  "homeassistant": "2023.12.0"
+}
