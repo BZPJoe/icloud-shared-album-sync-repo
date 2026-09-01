@@ -1,0 +1,32 @@
+configuration:
+  interval_minutes:
+    name: Sync interval
+    description: Minutes between syncs. Use 0 to run once.
+  timeout:
+    name: Network timeout
+    description: Seconds to wait for each Apple or media request.
+  keep_days:
+    name: Keep days
+    description: Delete media older than this many days. Use 0 to disable age pruning.
+  max_files:
+    name: Maximum files
+    description: Maximum media files retained per album. Use 0 for unlimited.
+  mirror_missing:
+    name: Mirror removed items
+    description: Remove local media that no longer exists in the public album.
+  minimum_file_size_kb:
+    name: Minimum file size
+    description: Reject derivatives smaller than this size in kilobytes.
+  minimum_long_edge:
+    name: Minimum long edge
+    description: Reject photo derivatives whose longest edge is smaller than this pixel count.
+  catalog_filename:
+    name: Album catalog filename
+    description: Root JSON catalog used by dashboards to discover albums.
+  debug:
+    name: Debug logging
+    description: Include detailed selection and download information in the log.
+  albums:
+    name: Albums
+    description: YAML list of public iCloud Shared Albums and their output folders.
+
