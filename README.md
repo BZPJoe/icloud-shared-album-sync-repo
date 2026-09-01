@@ -1,3 +1,7 @@
+<p align="center">
+  <img src="branding/icloud-shared-album-sync-wordmark.png" alt="iCloud Shared Album Sync" width="780">
+</p>
+
 # iCloud Shared Album Sync for Home Assistant
 
 Turn public iCloud Shared Albums into local, dashboard-friendly media libraries.
