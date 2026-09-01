@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.1.1
+
+- Installed the new iCloud Shared Album Sync artwork in Home Assistant's required app icon and logo locations.
+- Bumped the app version so repository and browser caches refresh the new branding.
+
 ## 1.1.0
 
 - Replaced the raw albums YAML textbox with a repeatable album editor.

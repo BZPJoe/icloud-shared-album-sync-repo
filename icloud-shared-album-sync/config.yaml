@@ -1,7 +1,7 @@
 name: iCloud Shared Album Sync
 slug: icloud-shared-album-sync
 description: Sync public iCloud Shared Albums into safe, indexed Home Assistant media libraries.
-version: "1.1.0"
+version: "1.1.1"
 url: https://github.com/BZPJoe/icloud-shared-album-sync-repo
 arch:
   - aarch64
