@@ -18,3 +18,7 @@ jobs:
       - run: pip install requests PyYAML
       - run: python -m unittest discover -s icloud-shared-album-sync/tests -v
       - run: python -m py_compile icloud-shared-album-sync/sync.py
+      - name: Validate Home Assistant app configuration
+        uses: frenck/action-addon-linter@v2
+        with:
+          path: "./icloud-shared-album-sync"

@@ -1,45 +1,48 @@
 name: iCloud Shared Album Sync
 slug: icloud-shared-album-sync
 description: Sync public iCloud Shared Albums into safe, indexed Home Assistant media libraries.
-version: "1.0.2"
+version: "1.1.0"
 url: https://github.com/BZPJoe/icloud-shared-album-sync-repo
 arch:
   - aarch64
   - amd64
-  - armv7
 init: false
 startup: services
-boot: auto
 map:
-  - config:rw
+  - type: homeassistant_config
+    read_only: false
+    path: /config
   - share:rw
   - media:rw
 options:
-  interval_minutes: 180
-  timeout: 40
-  keep_days: 0
-  max_files: 500
-  mirror_missing: true
-  minimum_file_size_kb: 100
-  minimum_long_edge: 1280
-  catalog_filename: albums.json
-  debug: false
-  albums: |
+  albums:
     - name: Family Photos
       shared_url: "https://www.icloud.com/sharedalbum/#YOUR_PUBLIC_ALBUM_ID"
-      dest_mode: config_www
-      media_subfolder: icloud-albums
       album_subfolder: family
-      latest_filename: latest.jpg
-      index_filename: index.json
+      enabled: true
+  interval_minutes: 180
+  mirror_missing: true
+  advanced:
+    timeout: 40
+    keep_days: 0
+    max_files: 500
+    minimum_file_size_kb: 100
+    minimum_long_edge: 1280
+    catalog_filename: albums.json
+    debug: false
 schema:
+  albums:
+    - name: str
+      shared_url: url
+      album_subfolder: str?
+      enabled: bool?
   interval_minutes: int
-  timeout: int
-  keep_days: int
-  max_files: int
   mirror_missing: bool
-  minimum_file_size_kb: int
-  minimum_long_edge: int
-  catalog_filename: str
-  debug: bool
-  albums: str
+  advanced:
+    timeout: int
+    keep_days: int
+    max_files: int
+    minimum_file_size_kb: int
+    minimum_long_edge: int
+    catalog_filename: str
+    debug: bool

@@ -26,6 +26,24 @@ class SyncTests(unittest.TestCase):
         self.assertEqual(parsed[0]["name"], "Dee")
         self.assertEqual(parsed[0]["album_subfolder"], "dee")
 
+    def test_native_album_editor_data_gets_friendly_defaults(self):
+        parsed = sync.parse_albums(
+            [{"name": "Dad and Janice", "shared_url": "https://example.test/#abc"}]
+        )
+        self.assertEqual(parsed[0]["album_subfolder"], "dad-and-janice")
+        self.assertEqual(parsed[0]["dest_mode"], "config_www")
+        self.assertEqual(parsed[0]["media_subfolder"], "icloud-albums")
+        self.assertEqual(parsed[0]["index_filename"], "index.json")
+
+    def test_disabled_album_is_ignored(self):
+        parsed = sync.parse_albums(
+            [
+                {"name": "Old", "shared_url": "https://example.test/#old", "enabled": False},
+                {"name": "Current", "shared_url": "https://example.test/#new", "enabled": True},
+            ]
+        )
+        self.assertEqual([album["name"] for album in parsed], ["Current"])
+
     def test_selects_largest_photo_derivative(self):
         photo = {
             "photoGuid": "guid",

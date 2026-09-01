@@ -2,7 +2,7 @@
 
 ## What it creates
 
-For an album configured with `media_subfolder: icloud-albums` and `album_subfolder: family`, the app creates:
+For an album whose folder name is `family`, the app creates:
 
 ```text
 /config/www/icloud-albums/
@@ -25,66 +25,31 @@ Home Assistant serves `/config/www` at `/local`, so the catalog is available to 
 
 Public links do not require an Apple login. Anyone with the link can view the shared album, so do not post it in issues or logs.
 
-## Recommended configuration
+## Add an album
 
-```yaml
-interval_minutes: 180
-timeout: 40
-keep_days: 0
-max_files: 500
-mirror_missing: true
-minimum_file_size_kb: 100
-minimum_long_edge: 1280
-catalog_filename: albums.json
-debug: false
-albums: |
-  - name: Family Photos
-    shared_url: "https://www.icloud.com/sharedalbum/#PUBLIC_ID_1"
-    dest_mode: config_www
-    media_subfolder: icloud-albums
-    album_subfolder: family
-    latest_filename: latest.jpg
-    index_filename: index.json
+1. Open the app's **Configuration** tab.
+2. Under **Photo albums**, choose **Add**.
+3. Enter a display name, such as `Family Photos`, `Dee`, or `Dad and Janice`.
+4. Paste the public iCloud Shared Album link.
+5. Leave **Folder name** blank unless a dashboard already uses a specific folder.
+6. Save and restart the app.
 
-  - name: Dee
-    shared_url: "https://www.icloud.com/sharedalbum/#PUBLIC_ID_2"
-    dest_mode: config_www
-    media_subfolder: icloud-albums
-    album_subfolder: dee
+The app automatically stores dashboard media under `/config/www/icloud-albums`, creates `index.json` and `latest.jpg`, and adds the album to `albums.json`. You do not need to write YAML or choose output paths.
 
-  - name: Dad and Janice
-    shared_url: "https://www.icloud.com/sharedalbum/#PUBLIC_ID_3"
-    dest_mode: config_www
-    media_subfolder: icloud-albums
-    album_subfolder: dad-and-janice
-
-  - name: Robin
-    shared_url: "https://www.icloud.com/sharedalbum/#PUBLIC_ID_4"
-    dest_mode: config_www
-    media_subfolder: icloud-albums
-    album_subfolder: robin
-```
+Use the **Sync this album** switch to pause an album without losing its setup. The recommended sync and cleanup settings are already filled in. Network, retention, image-quality, catalog, and debug controls are grouped under **Advanced settings**.
 
 The Office dashboard matches a visitor's calendar event to the album `name`. A calendar event called **Dee coming to stay** selects the album named **Dee** for each day covered by that event. When no visitor album matches, it falls back to the `family` folder.
 
-## Album options
+## Album fields
 
-Every album supports these keys:
+Every album has these friendly fields:
 
 | Key | Required | Purpose |
 | --- | --- | --- |
-| `name` | Recommended | Friendly name exposed in `albums.json`. |
-| `shared_url` | Yes | Public iCloud Shared Album link. |
-| `dest_mode` | No | `config_www`, `media`, or `share`; default is `media`. |
-| `media_subfolder` | No | Parent output folder. |
-| `album_subfolder` | Yes | Stable folder slug for this album. |
-| `index_filename` | No | Per-album index name; default `index.json`. |
-| `latest_filename` | No | Copy of the newest image; default `latest.jpg`. Set to an empty string to disable. |
-| `keep_days` | No | Overrides the global retention age. |
-| `max_files` | No | Overrides the global file limit. |
-| `mirror_missing` | No | Overrides global mirror behavior. |
-| `minimum_file_size_kb` | No | Overrides the global derivative size floor. |
-| `minimum_long_edge` | No | Overrides the global photo resolution floor. |
+| `Display name` | Yes | Friendly name exposed to dashboards and used to generate a folder name. |
+| `Public iCloud link` | Yes | Full link copied after enabling **Public Website** in Apple Photos. |
+| `Folder name` | No | Stable dashboard folder. Leave blank to generate it from the display name. |
+| `Sync this album` | No | Pause or resume an album without deleting it. |
 
 ## Safe mirror behavior
 
@@ -92,12 +57,16 @@ Mirror mode only removes recognized photo and video files after Apple has return
 
 ## Retention
 
-- `keep_days: 0` keeps files regardless of age.
-- `max_files: 0` disables the count limit.
+- **Delete photos older than: 0** keeps files regardless of age.
+- **Maximum items per album: 0** disables the count limit.
 - Limits apply only to media files, never metadata.
 - Retention is applied after a successful remote listing.
 
-## Migrating from 0.4.3
+## Updating from an earlier version
+
+Version 1.1 replaces the raw YAML album box with a visual add/remove editor. Existing album entries continue to work. After updating, open **Configuration**, confirm each album appears as a row, and save once to store it in the new format.
+
+### Migrating from 0.4.3
 
 Version 1.0 reads existing media filenames and reuses them when possible. Its first successful sync recreates the index and catalog. The old version could delete its own `index.json`; no manual repair is required.
 
@@ -113,11 +82,10 @@ The first run can take longer because it verifies the remote album. Later runs s
 
 ### Some images are skipped
 
-The public album may only expose a small derivative for that item. Lower `minimum_long_edge` or `minimum_file_size_kb` for that album if you want to accept it.
+The public album may only expose a small derivative for that item. Open **Advanced settings** and lower **Minimum photo resolution** or **Minimum file size** if you want to accept it.
 
 ### Dashboard does not discover a new guest album
 
-- Keep guest albums under the same `dest_mode` and `media_subfolder` as the default album.
 - Check that `/local/icloud-albums/albums.json` loads in Home Assistant.
 - Make the calendar visitor name and album `name` match; phrases such as “coming to stay” and “visiting” are ignored by the Office dashboard.
 

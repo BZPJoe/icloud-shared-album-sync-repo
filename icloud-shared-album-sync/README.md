@@ -5,3 +5,5 @@ Download one or more public iCloud Shared Albums into Home Assistant and keep a 
 After installation, open the **Documentation** tab for setup examples and migration guidance.
 
 The app does not require Apple credentials. It only reads albums shared with iCloud's **Public Website** option.
+
+Albums are added with a visual repeatable editor—no YAML or output-path setup is required. Advanced network, retention, quality, and troubleshooting controls stay grouped out of the way.

@@ -1,5 +1,14 @@
 # Changelog
 
+## 1.1.0
+
+- Replaced the raw albums YAML textbox with a repeatable album editor.
+- Reduced each album to a friendly name, public link, optional folder name, and enable switch.
+- Added safe Home Assistant dashboard defaults for output paths and index filenames.
+- Grouped network, retention, quality, catalog, and debug controls under Advanced settings.
+- Kept compatibility with albums saved by earlier versions.
+- Updated the Home Assistant configuration mount and supported architectures for current app-platform requirements.
+
 ## 1.0.2
 
 - Read the app's own options directly from its private data mount, avoiding an unnecessary Supervisor API permission.

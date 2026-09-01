@@ -4,13 +4,14 @@
 
 # iCloud Shared Album Sync for Home Assistant
 
-Turn public iCloud Shared Albums into local, dashboard-friendly media libraries.
+Turn public iCloud Shared Albums into local, dashboard-friendly media libraries with a visual setup form—no YAML or folder-path configuration required.
 
 This Home Assistant app downloads the best available photo or video for every item in one or more public shared albums. It creates a stable `index.json` for each album and an `albums.json` catalog that dashboards can use to discover new albums automatically.
 
 ## Highlights
 
 - Multiple albums from one app
+- Friendly add/remove album editor with sensible Home Assistant defaults
 - Incremental downloads instead of downloading everything on every run
 - Stable indexes with capture dates, media types, dimensions, and contributor names
 - Safe mirror mode that never treats indexes or status files as photos

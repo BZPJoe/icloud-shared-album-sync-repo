@@ -143,12 +143,15 @@ def normalize_single_line_yaml(value: str) -> str:
     return "\n".join(lines)
 
 
-def parse_albums(value: str) -> list[dict[str, Any]]:
-    normalized = normalize_single_line_yaml(value)
-    try:
-        parsed = yaml.safe_load(normalized)
-    except yaml.YAMLError as error:
-        raise SyncError(f"Invalid albums YAML: {error}") from error
+def parse_albums(value: Any) -> list[dict[str, Any]]:
+    if isinstance(value, str):
+        normalized = normalize_single_line_yaml(value)
+        try:
+            parsed = yaml.safe_load(normalized)
+        except yaml.YAMLError as error:
+            raise SyncError(f"Invalid albums configuration: {error}") from error
+    else:
+        parsed = value
     if isinstance(parsed, dict):
         parsed = [parsed]
     if not isinstance(parsed, list) or not parsed:
@@ -156,10 +159,26 @@ def parse_albums(value: str) -> list[dict[str, Any]]:
     albums: list[dict[str, Any]] = []
     for position, album in enumerate(parsed, start=1):
         if not isinstance(album, dict):
-            raise SyncError(f"Album {position} is not a YAML mapping.")
-        if not album.get("shared_url") or not album.get("album_subfolder"):
-            raise SyncError(f"Album {position} requires shared_url and album_subfolder.")
-        albums.append(album)
+            raise SyncError(f"Album {position} is not a valid album entry.")
+        if not parse_bool(album.get("enabled", True)):
+            continue
+        normalized_album = dict(album)
+        name = str(normalized_album.get("name") or "").strip()
+        if not normalized_album.get("shared_url"):
+            raise SyncError(f"Album {position} requires a public iCloud link.")
+        if not name:
+            name = "Shared Album"
+        normalized_album["name"] = name
+        normalized_album["album_subfolder"] = str(
+            normalized_album.get("album_subfolder") or slugify(name)
+        ).strip()
+        normalized_album.setdefault("dest_mode", "config_www")
+        normalized_album.setdefault("media_subfolder", "icloud-albums")
+        normalized_album.setdefault("index_filename", "index.json")
+        normalized_album.setdefault("latest_filename", "latest.jpg")
+        albums.append(normalized_album)
+    if not albums:
+        raise SyncError("At least one album must be enabled.")
     return albums
 
 
