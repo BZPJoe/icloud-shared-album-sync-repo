@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.1.3
+
+- Use the colorful icon by itself in Home Assistant's compact app header.
+- Show the full iCloud Shared Album Sync wordmark prominently above the app description.
+
 ## 1.1.2
 
 - Fixed repeatable album-editor entries being misread when Home Assistant passes them to the sync engine as JSON text.

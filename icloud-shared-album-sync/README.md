@@ -1,3 +1,7 @@
+<p align="center">
+  <img src="https://raw.githubusercontent.com/BZPJoe/icloud-shared-album-sync-repo/main/branding/icloud-shared-album-sync-wordmark.png" alt="iCloud Shared Album Sync" width="720">
+</p>
+
 # iCloud Shared Album Sync
 
 Download one or more public iCloud Shared Albums into Home Assistant and keep a dashboard-ready JSON index beside each album.
