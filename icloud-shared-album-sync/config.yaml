@@ -12,8 +12,10 @@ map:
   - type: homeassistant_config
     read_only: false
     path: /config
-  - share:rw
-  - media:rw
+  - type: share
+    read_only: false
+  - type: media
+    read_only: false
 options:
   albums:
     - name: Family Photos
