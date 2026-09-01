@@ -145,10 +145,13 @@ def normalize_single_line_yaml(value: str) -> str:
 
 def parse_albums(value: Any) -> list[dict[str, Any]]:
     if isinstance(value, str):
-        normalized = normalize_single_line_yaml(value)
+        stripped = value.strip()
         try:
-            parsed = yaml.safe_load(normalized)
-        except yaml.YAMLError as error:
+            if stripped.startswith("[") or stripped.startswith("{"):
+                parsed = json.loads(stripped)
+            else:
+                parsed = yaml.safe_load(normalize_single_line_yaml(stripped))
+        except (json.JSONDecodeError, yaml.YAMLError) as error:
             raise SyncError(f"Invalid albums configuration: {error}") from error
     else:
         parsed = value

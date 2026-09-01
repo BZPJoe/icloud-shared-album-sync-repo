@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.1.2
+
+- Fixed repeatable album-editor entries being misread when Home Assistant passes them to the sync engine as JSON text.
+- Added regression coverage for the exact saved-options format used by the running app.
+
 ## 1.1.1
 
 - Installed the new iCloud Shared Album Sync artwork in Home Assistant's required app icon and logo locations.

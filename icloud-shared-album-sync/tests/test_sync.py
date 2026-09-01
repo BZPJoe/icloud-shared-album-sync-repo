@@ -35,6 +35,13 @@ class SyncTests(unittest.TestCase):
         self.assertEqual(parsed[0]["media_subfolder"], "icloud-albums")
         self.assertEqual(parsed[0]["index_filename"], "index.json")
 
+    def test_native_album_editor_json_from_options(self):
+        parsed = sync.parse_albums(
+            '[{"name":"Family Photos","shared_url":"https://example.test/#abc","enabled":true}]'
+        )
+        self.assertEqual(parsed[0]["name"], "Family Photos")
+        self.assertEqual(parsed[0]["album_subfolder"], "family-photos")
+
     def test_disabled_album_is_ignored(self):
         parsed = sync.parse_albums(
             [
