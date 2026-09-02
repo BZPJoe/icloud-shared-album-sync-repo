@@ -12,6 +12,7 @@ This Home Assistant app downloads the best available photo or video for every it
 
 - Multiple albums from one app
 - Friendly add/remove album editor with sensible Home Assistant defaults
+- Folder names automatically normalized to lowercase dashboard-safe slugs
 - Incremental downloads instead of downloading everything on every run
 - Stable indexes with capture dates, media types, dimensions, and contributor names
 - Safe mirror mode that never treats indexes or status files as photos

@@ -1,7 +1,7 @@
 configuration:
   albums:
     name: Photo albums
-    description: Add, remove, or temporarily disable albums. Only the public iCloud link is required; folder names are created automatically when left blank.
+    description: Add, remove, or temporarily disable albums. Only the public iCloud link is required; folder names are created automatically when left blank and are always converted to lowercase dashboard-safe names.
     fields:
       name:
         name: Display name
@@ -11,7 +11,7 @@ configuration:
         description: In Apple Photos, enable Public Website for the Shared Album and paste its full link here.
       album_subfolder:
         name: Folder name (optional)
-        description: Keep this stable if a dashboard already uses the album. Leave blank to create one from the display name.
+        description: Keep this stable if a dashboard already uses the album. Leave blank to create one from the display name. Any value is automatically converted to lowercase words joined with hyphens, for example “Dee Visits” becomes “dee-visits”.
       enabled:
         name: Sync this album
         description: Turn this off to pause an album without deleting its setup.

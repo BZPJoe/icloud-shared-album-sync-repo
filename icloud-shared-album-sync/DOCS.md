@@ -33,7 +33,7 @@ Public links do not require an Apple login. The app uses Apple's short-lived ano
 2. Under **Photo albums**, choose **Add**.
 3. Enter a display name, such as `Family Photos`, `Dee`, or `Dad and Janice`.
 4. Paste the public iCloud Shared Album link.
-5. Leave **Folder name** blank unless a dashboard already uses a specific folder.
+5. Leave **Folder name** blank unless a dashboard already uses a specific folder. The app automatically converts any folder name to lowercase words joined with hyphens—`Dee Visits` becomes `dee-visits`—so the computer folder and dashboard URL always match.
 6. Save and restart the app.
 
 The app automatically stores dashboard media under `/config/www/icloud-albums`, creates `index.json` and `latest.jpg`, and adds the album to `albums.json`. You do not need to write YAML or choose output paths.
@@ -50,7 +50,7 @@ Every album has these friendly fields:
 | --- | --- | --- |
 | `Display name` | Yes | Friendly name exposed to dashboards and used to generate a folder name. |
 | `Public iCloud link` | Yes | Full link copied after enabling **Public Website** in Apple Photos. |
-| `Folder name` | No | Stable dashboard folder. Leave blank to generate it from the display name. |
+| `Folder name` | No | Stable dashboard folder. Leave blank to generate it from the display name. Values are automatically converted to lowercase, hyphenated folder names. |
 | `Sync this album` | No | Pause or resume an album without deleting it. |
 
 ## Safe mirror behavior

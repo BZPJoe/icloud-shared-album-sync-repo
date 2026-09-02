@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.2.2
+
+- Automatically normalize custom album folder names to lowercase dashboard-safe slugs.
+- Explain the automatic folder-name conversion in the visual settings form and documentation.
+
 ## 1.2.1
 
 - Prefer Apple's dashboard-friendly JPEG derivative for current-format photo albums, including albums whose original uploads are HEIC or RAW.

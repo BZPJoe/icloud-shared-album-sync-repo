@@ -175,9 +175,11 @@ def parse_albums(value: Any) -> list[dict[str, Any]]:
         if not name:
             name = "Shared Album"
         normalized_album["name"] = name
-        normalized_album["album_subfolder"] = str(
-            normalized_album.get("album_subfolder") or slugify(name)
-        ).strip()
+        # Folders back the public dashboard URLs, so keep every configured value
+        # predictable across macOS, Linux, and case-sensitive web paths.
+        normalized_album["album_subfolder"] = slugify(
+            str(normalized_album.get("album_subfolder") or name).strip()
+        )
         normalized_album.setdefault("dest_mode", "config_www")
         normalized_album.setdefault("media_subfolder", "icloud-albums")
         normalized_album.setdefault("index_filename", "index.json")
