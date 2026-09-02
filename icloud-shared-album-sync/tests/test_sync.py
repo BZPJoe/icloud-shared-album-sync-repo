@@ -52,6 +52,28 @@ class SyncTests(unittest.TestCase):
         self.assertTrue(item.source_url.endswith("/Dee%20at%20the%20lake.jpg?token=abc"))
         self.assertEqual(item.media_type, "image")
 
+    def test_current_public_album_prefers_dashboard_jpeg_over_heic_original(self):
+        record = {
+            "recordName": "heic-guid",
+            "recordType": "CPLMaster",
+            "fields": {
+                "itemType": {"value": "public.heic"},
+                "filenameEnc": {"value": b64encode(b"IMG_0001.HEIC").decode()},
+                "resOriginalWidth": {"value": 4032},
+                "resOriginalHeight": {"value": 3024},
+                "resOriginalRes": {"value": {"size": 2000000, "downloadURL": "https://example.test/original/${f}"}},
+                "resJPEGMedWidth": {"value": 2048},
+                "resJPEGMedHeight": {"value": 1536},
+                "resJPEGMedFileType": {"value": "public.jpeg"},
+                "resJPEGMedRes": {"value": {"size": 500000, "downloadURL": "https://example.test/jpeg/${f}"}},
+            },
+        }
+        item = sync.modern_record_to_item(record, minimum_long_edge=1280, minimum_bytes=100000)
+        self.assertIsNotNone(item)
+        self.assertEqual(item.filename, "IMG_0001.jpg")
+        self.assertEqual((item.width, item.height), (2048, 1536))
+        self.assertIn("/jpeg/IMG_0001.jpg", item.source_url)
+
     def test_current_public_album_record_honors_quality_floor(self):
         record = {
             "recordName": "tiny-guid",

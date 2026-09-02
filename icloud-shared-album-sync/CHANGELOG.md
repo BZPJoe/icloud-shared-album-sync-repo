@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.2.1
+
+- Prefer Apple's dashboard-friendly JPEG derivative for current-format photo albums, including albums whose original uploads are HEIC or RAW.
+
 ## 1.2.0
 
 - Added support for Apple's current `photos.icloud.com/shared/album/…` public-link format.

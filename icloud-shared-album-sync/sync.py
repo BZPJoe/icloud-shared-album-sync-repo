@@ -255,7 +255,7 @@ def modern_record_to_item(
         "resJPEGMed",
         "resJPEGThumb",
     )
-    candidates: list[tuple[dict[str, Any], int, int, int, str]] = []
+    candidates: list[tuple[str, dict[str, Any], int, int, int, str]] = []
     for prefix in prefixes:
         asset = field_value(fields, f"{prefix}Res")
         if not isinstance(asset, dict) or not isinstance(asset.get("downloadURL"), str):
@@ -265,11 +265,20 @@ def modern_record_to_item(
         size = as_int(asset.get("size") or field_value(fields, f"{prefix}FileSize"))
         if max(width, height) < minimum_long_edge or (size and size < minimum_bytes):
             continue
-        candidates.append((asset, width, height, size, str(field_value(fields, f"{prefix}FileType", ""))))
+        candidates.append(
+            (prefix, asset, width, height, size, str(field_value(fields, f"{prefix}FileType", "")))
+        )
     if not candidates:
         return None
 
-    asset, width, height, size, file_type = max(candidates, key=lambda item: (item[1] * item[2], item[3]))
+    if media_type == "image":
+        # The medium JPEG is large enough for dashboards and avoids putting HEIC or RAW
+        # originals in a browser-facing media folder. Fall back only when Apple omits it.
+        preferred = next((item for item in candidates if item[0] == "resJPEGMed"), None)
+        selected = preferred or max(candidates, key=lambda item: (item[2] * item[3], item[4]))
+    else:
+        selected = max(candidates, key=lambda item: (item[2] * item[3], item[4]))
+    _prefix, asset, width, height, size, file_type = selected
     original_name = decoded_modern_filename(field_value(fields, "filenameEnc"))
     if not original_name:
         extension = ".mp4" if media_type == "video" else ".jpg"
@@ -277,6 +286,14 @@ def modern_record_to_item(
             extension = ".heic"
         original_name = f"icloud-{guid[:12]}{extension}"
     filename = safe_filename(original_name, guid, media_type)
+    stem, _suffix = os.path.splitext(filename)
+    lowered_type = file_type.lower()
+    if "jpeg" in lowered_type:
+        filename = f"{stem}.jpg"
+    elif "quicktime" in lowered_type:
+        filename = f"{stem}.mov"
+    elif "mpeg" in lowered_type or "mp4" in lowered_type:
+        filename = f"{stem}.mp4"
     source_url = str(asset["downloadURL"]).replace("${f}", quote(filename))
     return RemoteItem(
         guid=guid,
