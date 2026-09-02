@@ -1,5 +1,12 @@
 # Changelog
 
+## 1.2.0
+
+- Added support for Apple's current `photos.icloud.com/shared/album/…` public-link format.
+- Kept compatibility with legacy `www.icloud.com/sharedalbum/#…` links.
+- Added pagination, quality filtering, and dashboard indexes for current-format albums.
+- Documented the two supported public-link formats and the app's short-lived anonymous access flow.
+
 ## 1.1.3
 
 - Use the colorful icon by itself in Home Assistant's compact app header.

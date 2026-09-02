@@ -18,6 +18,7 @@ This Home Assistant app downloads the best available photo or video for every it
 - `latest.jpg` generated from the newest available image
 - Automatic root album catalog for guest-aware dashboards
 - Per-album retention and mirror overrides
+- Works with both current `photos.icloud.com/shared/album/…` links and legacy iCloud Public Website links
 - Works with `/config/www`, `/media`, or `/share`
 
 ## Install
@@ -32,7 +33,7 @@ See the [app documentation](icloud-shared-album-sync/DOCS.md) for configuration 
 
 ## Privacy and scope
 
-The app only works with albums that have an iCloud **Public Website** link. It does not request or store an Apple ID, password, or iCloud session cookie. Anyone with a public album URL can access that album, so treat the URL as sensitive.
+The app only works with albums that have an iCloud **Public Website** link. It supports both current `photos.icloud.com/shared/album/…` links and legacy `www.icloud.com/sharedalbum/#…` links. It does not request or store an Apple ID, password, or iCloud session cookie; Apple's anonymous token for newer links is used only for the active sync request. Anyone with a public album URL can access that album, so treat the URL as sensitive.
 
 ## Development
 

@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 import argparse
+import base64
 import json
 import logging
 import os
@@ -15,13 +16,15 @@ from dataclasses import asdict, dataclass
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from typing import Any, Iterable
-from urllib.parse import unquote, urlparse
+from urllib.parse import quote, unquote, urlparse
 
 import requests
 import yaml
 
 
 APPLE_BOOTSTRAP_HOST = "p23-sharedstreams.icloud.com"
+APPLE_CLOUDKIT_CONTAINER = "com.apple.photos.cloud"
+MODERN_SHARED_ALBUM_HOSTS = {"photos.icloud.com", "photos.icloud.com.cn"}
 MEDIA_EXTENSIONS = {
     ".jpg",
     ".jpeg",
@@ -195,6 +198,100 @@ def album_id_from_url(shared_url: str) -> str:
     return album_id
 
 
+def modern_album_id_from_url(shared_url: str) -> str | None:
+    """Return the opaque ID used by Apple's newer photos.icloud.com links."""
+    parsed = urlparse(shared_url.strip())
+    if parsed.hostname not in MODERN_SHARED_ALBUM_HOSTS:
+        return None
+    match = re.fullmatch(r"/shared/(?:album|gallery)/([A-Za-z0-9_-]+)/?", parsed.path)
+    if not match:
+        return None
+    return match.group(1)
+
+
+def field_value(fields: dict[str, Any], name: str, default: Any = None) -> Any:
+    field = fields.get(name)
+    return field.get("value", default) if isinstance(field, dict) else default
+
+
+def cloudkit_timestamp(value: Any) -> str | None:
+    try:
+        timestamp = float(value) / 1000
+        return datetime.fromtimestamp(timestamp, tz=timezone.utc).isoformat().replace("+00:00", "Z")
+    except (TypeError, ValueError, OSError, OverflowError):
+        return None
+
+
+def decoded_modern_filename(value: Any) -> str:
+    """Public albums currently expose the original filename as base64 bytes."""
+    if not isinstance(value, str) or not value:
+        return ""
+    try:
+        return base64.b64decode(value, validate=True).decode("utf-8")
+    except (ValueError, UnicodeDecodeError):
+        return ""
+
+
+def modern_record_to_item(
+    record: dict[str, Any], minimum_long_edge: int, minimum_bytes: int
+) -> RemoteItem | None:
+    """Convert a public CloudKit CPLMaster record into a dashboard-ready item."""
+    if record.get("recordType") != "CPLMaster" or record.get("deleted"):
+        return None
+    fields = record.get("fields")
+    if not isinstance(fields, dict):
+        return None
+    guid = str(record.get("recordName") or "")
+    if not guid:
+        return None
+
+    item_type = str(field_value(fields, "itemType", "")).lower()
+    is_video = any(token in item_type for token in ("video", "movie", "quicktime", "mpeg"))
+    if not is_video and not field_value(fields, "resOriginalRes") and field_value(fields, "resOriginalVidComplRes"):
+        is_video = True
+    media_type = "video" if is_video else "image"
+    prefixes = ("resOriginalVidCompl", "resVidMed", "resVidSmall") if is_video else (
+        "resOriginal",
+        "resJPEGMed",
+        "resJPEGThumb",
+    )
+    candidates: list[tuple[dict[str, Any], int, int, int, str]] = []
+    for prefix in prefixes:
+        asset = field_value(fields, f"{prefix}Res")
+        if not isinstance(asset, dict) or not isinstance(asset.get("downloadURL"), str):
+            continue
+        width = as_int(field_value(fields, f"{prefix}Width"))
+        height = as_int(field_value(fields, f"{prefix}Height"))
+        size = as_int(asset.get("size") or field_value(fields, f"{prefix}FileSize"))
+        if max(width, height) < minimum_long_edge or (size and size < minimum_bytes):
+            continue
+        candidates.append((asset, width, height, size, str(field_value(fields, f"{prefix}FileType", ""))))
+    if not candidates:
+        return None
+
+    asset, width, height, size, file_type = max(candidates, key=lambda item: (item[1] * item[2], item[3]))
+    original_name = decoded_modern_filename(field_value(fields, "filenameEnc"))
+    if not original_name:
+        extension = ".mp4" if media_type == "video" else ".jpg"
+        if "heic" in file_type.lower():
+            extension = ".heic"
+        original_name = f"icloud-{guid[:12]}{extension}"
+    filename = safe_filename(original_name, guid, media_type)
+    source_url = str(asset["downloadURL"]).replace("${f}", quote(filename))
+    return RemoteItem(
+        guid=guid,
+        filename=filename,
+        source_url=source_url,
+        media_type=media_type,
+        captured_at=cloudkit_timestamp(field_value(fields, "originalCreationDate") or field_value(fields, "importDate")),
+        width=width,
+        height=height,
+        expected_size=size,
+        caption="",
+        contributor="",
+    )
+
+
 def select_derivative(
     photo: dict[str, Any], minimum_long_edge: int, minimum_bytes: int
 ) -> tuple[str, dict[str, Any]] | None:
@@ -252,9 +349,110 @@ class ICloudClient:
             raise SyncError("Apple returned an unexpected response.")
         return data
 
+    def _cloudkit_post(
+        self, url: str, payload: dict[str, Any], params: dict[str, str]
+    ) -> dict[str, Any]:
+        """Make a public CloudKit request without ever retaining its short-lived token."""
+        try:
+            response = self.session.post(
+                url,
+                data=json.dumps(payload),
+                params=params,
+                headers={"content-type": "text/plain"},
+                timeout=self.timeout,
+            )
+            response.raise_for_status()
+            data = response.json()
+        except (requests.RequestException, ValueError) as error:
+            raise SyncError(f"Apple request failed: {error}") from error
+        if not isinstance(data, dict):
+            raise SyncError("Apple returned an unexpected response.")
+        return data
+
+    def _modern_public_album(
+        self, album_id: str, minimum_long_edge: int, minimum_bytes: int
+    ) -> list[RemoteItem]:
+        common_params = {
+            "remapEnums": "true",
+            "getCurrentSyncToken": "true",
+            "sharing_url_key": album_id,
+        }
+        resolve_url = (
+            f"https://ckdatabasews.icloud.com/database/1/{APPLE_CLOUDKIT_CONTAINER}"
+            "/production/public/records/resolve"
+        )
+        resolved = self._cloudkit_post(
+            resolve_url, {"shortGUIDs": [{"value": album_id}]}, common_params
+        )
+        results = resolved.get("results") or []
+        if not isinstance(results, list) or len(results) != 1 or not isinstance(results[0], dict):
+            raise SyncError("Apple could not resolve this public shared album.")
+        result = results[0]
+        access = result.get("anonymousPublicAccess")
+        zone = result.get("zoneID")
+        if not isinstance(access, dict) or not isinstance(zone, dict):
+            raise SyncError("This public album does not allow anonymous media access.")
+        token = str(access.get("token") or "")
+        partition = str(access.get("databasePartition") or "")
+        parsed_partition = urlparse(partition)
+        if (
+            not token
+            or parsed_partition.scheme != "https"
+            or not parsed_partition.hostname
+            or not parsed_partition.hostname.endswith(("ckdatabasews.icloud.com", "ckdatabasews.icloud.com.cn"))
+        ):
+            raise SyncError("Apple returned an invalid public media endpoint.")
+
+        query_url = (
+            f"{partition.rstrip('/')}/database/1/{APPLE_CLOUDKIT_CONTAINER}"
+            "/production/shared/records/query"
+        )
+        query_params = {**common_params, "publicAccessAuthToken": token}
+        payload: dict[str, Any] = {
+            "query": {
+                "recordType": "CPLAssetAndMasterByAssetDateWithoutHiddenOrDeleted",
+                "filterBy": [
+                    {
+                        "fieldName": "direction",
+                        "comparator": "EQUALS",
+                        "fieldValue": {"value": "DESCENDING", "type": "STRING"},
+                    }
+                ],
+            },
+            "zoneID": zone,
+            "resultsLimit": 100,
+        }
+        records: list[dict[str, Any]] = []
+        seen_markers: set[str] = set()
+        while True:
+            page = self._cloudkit_post(query_url, payload, query_params)
+            page_records = page.get("records") or []
+            if not isinstance(page_records, list):
+                raise SyncError("Apple's album response did not contain a media list.")
+            records.extend(record for record in page_records if isinstance(record, dict))
+            marker = str(page.get("continuationMarker") or "")
+            if not marker or marker in seen_markers:
+                break
+            seen_markers.add(marker)
+            payload["continuationMarker"] = marker
+
+        selected_items = [
+            item
+            for record in records
+            if (item := modern_record_to_item(record, minimum_long_edge, minimum_bytes))
+        ]
+        logging.info(
+            "Apple listed %d usable item(s) from its current public-album format.",
+            len(selected_items),
+        )
+        return selected_items
+
     def list_album(
         self, shared_url: str, minimum_long_edge: int, minimum_bytes: int
     ) -> list[RemoteItem]:
+        modern_album_id = modern_album_id_from_url(shared_url)
+        if modern_album_id:
+            return self._modern_public_album(modern_album_id, minimum_long_edge, minimum_bytes)
         album_id = album_id_from_url(shared_url)
         payload = {"streamCtag": None}
         base = f"https://{APPLE_BOOTSTRAP_HOST}/{album_id}/sharedstreams"

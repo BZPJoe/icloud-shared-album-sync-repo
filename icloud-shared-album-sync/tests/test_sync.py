@@ -3,6 +3,7 @@ import json
 import sys
 import tempfile
 import unittest
+from base64 import b64encode
 from pathlib import Path
 
 
@@ -14,6 +15,56 @@ SPEC.loader.exec_module(sync)
 
 
 class SyncTests(unittest.TestCase):
+    def test_recognizes_current_photos_icloud_link(self):
+        self.assertEqual(
+            sync.modern_album_id_from_url(
+                "https://photos.icloud.com/shared/album/0d1BnY5KrxNaYN5y1AZI-IK7Q"
+            ),
+            "0d1BnY5KrxNaYN5y1AZI-IK7Q",
+        )
+        self.assertIsNone(sync.modern_album_id_from_url("https://www.icloud.com/sharedalbum/#old"))
+
+    def test_converts_current_public_album_record(self):
+        filename = b64encode(b"Dee at the lake.jpg").decode()
+        record = {
+            "recordName": "record-guid",
+            "recordType": "CPLMaster",
+            "fields": {
+                "itemType": {"value": "public.jpeg"},
+                "filenameEnc": {"value": filename},
+                "originalCreationDate": {"value": 1788307240472},
+                "resJPEGMedWidth": {"value": 2048},
+                "resJPEGMedHeight": {"value": 1536},
+                "resJPEGMedFileType": {"value": "public.jpeg"},
+                "resJPEGMedRes": {
+                    "value": {
+                        "size": 498385,
+                        "downloadURL": "https://example.test/B/file/${f}?token=abc",
+                    }
+                },
+            },
+        }
+        item = sync.modern_record_to_item(record, minimum_long_edge=1280, minimum_bytes=100000)
+        self.assertIsNotNone(item)
+        self.assertEqual(item.filename, "Dee at the lake.jpg")
+        self.assertEqual(item.width, 2048)
+        self.assertEqual(item.height, 1536)
+        self.assertTrue(item.source_url.endswith("/Dee%20at%20the%20lake.jpg?token=abc"))
+        self.assertEqual(item.media_type, "image")
+
+    def test_current_public_album_record_honors_quality_floor(self):
+        record = {
+            "recordName": "tiny-guid",
+            "recordType": "CPLMaster",
+            "fields": {
+                "itemType": {"value": "public.jpeg"},
+                "resJPEGMedWidth": {"value": 800},
+                "resJPEGMedHeight": {"value": 600},
+                "resJPEGMedRes": {"value": {"size": 40000, "downloadURL": "https://example.test/tiny"}},
+            },
+        }
+        self.assertIsNone(sync.modern_record_to_item(record, minimum_long_edge=1280, minimum_bytes=100000))
+
     def test_parse_bool(self):
         self.assertTrue(sync.parse_bool("true"))
         self.assertTrue(sync.parse_bool("YES"))

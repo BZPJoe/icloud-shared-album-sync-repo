@@ -23,7 +23,9 @@ Home Assistant serves `/config/www` at `/local`, so the catalog is available to 
 3. Enable **Public Website** for that album.
 4. Copy its iCloud link.
 
-Public links do not require an Apple login. Anyone with the link can view the shared album, so do not post it in issues or logs.
+The app supports both iCloud public-link styles: newer links beginning with `https://photos.icloud.com/shared/album/…` and the older `https://www.icloud.com/sharedalbum/#…` links. Paste the whole link exactly as Photos gives it to you—there is no need to convert it.
+
+Public links do not require an Apple login. The app uses Apple's short-lived anonymous access token only while syncing; it never stores an Apple ID, password, browser cookie, or that token. Anyone with the link can view the shared album, so do not post it in issues or logs.
 
 ## Add an album
 
@@ -77,7 +79,7 @@ The first run can take longer because it verifies the remote album. Later runs s
 ### No media appears
 
 - Confirm **Public Website** is enabled for the album.
-- Confirm the full URL, including the text after `#`, is present in `shared_url`.
+- Paste the full link copied from Photos. Older links require the text after `#`; newer `photos.icloud.com/shared/album/…` links do not use `#`.
 - Open the app log and look for an Apple request or validation error.
 
 ### Some images are skipped
