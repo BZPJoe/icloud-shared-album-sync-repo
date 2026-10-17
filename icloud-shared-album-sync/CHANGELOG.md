@@ -2,7 +2,12 @@
 
 ## 1.2.2
 
-- Automatically normalize custom album folder names to lowercase dashboard-safe slugs.
+- Normalize new custom folder names to lowercase dashboard-safe slugs; reuse existing configured folders without renaming their media or dashboard paths.
+- Reject destination collisions before synchronization.
+- Preserve existing indexes and skip cleanup after failed or truncated downloads; reject malformed listings and repeated pagination markers.
+- Avoid exposing signed request URLs in request/download errors or HTTP debug logs.
+- Retain optional legacy album fields in the visual editor schema and document manual saved-options conversion, advanced settings, backup/rollback, and removal of armv7 support.
+- Mark 1.2.2 as requiring upgrade attention in Home Assistant.
 - Explain the automatic folder-name conversion in the visual settings form and documentation.
 
 ## 1.2.1

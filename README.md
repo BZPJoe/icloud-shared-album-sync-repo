@@ -12,7 +12,7 @@ This Home Assistant app downloads the best available photo or video for every it
 
 - Multiple albums from one app
 - Friendly add/remove album editor with sensible Home Assistant defaults
-- Folder names automatically normalized to lowercase dashboard-safe slugs
+- New folder names normalized to lowercase dashboard-safe slugs; existing configured folders preserved
 - Incremental downloads instead of downloading everything on every run
 - Stable indexes with capture dates, media types, dimensions, and contributor names
 - Safe mirror mode that never treats indexes or status files as photos
@@ -21,6 +21,8 @@ This Home Assistant app downloads the best available photo or video for every it
 - Per-album retention and mirror overrides
 - Works with both current `photos.icloud.com/shared/album/…` links and legacy iCloud Public Website links
 - Works with `/config/www`, `/media`, or `/share`
+
+Current release: **1.2.2**. Upgrading from 1.0.2 changes the options schema and supported architectures; read the [migration instructions](icloud-shared-album-sync/DOCS.md#updating-from-102-to-122) before updating.
 
 ## Install
 

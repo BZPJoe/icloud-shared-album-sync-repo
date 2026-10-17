@@ -33,14 +33,14 @@ Public links do not require an Apple login. The app uses Apple's short-lived ano
 2. Under **Photo albums**, choose **Add**.
 3. Enter a display name, such as `Family Photos`, `Dee`, or `Dad and Janice`.
 4. Paste the public iCloud Shared Album link.
-5. Leave **Folder name** blank unless a dashboard already uses a specific folder. The app automatically converts any folder name to lowercase words joined with hyphens—`Dee Visits` becomes `dee-visits`—so the computer folder and dashboard URL always match.
+5. Leave **Folder name** blank unless a dashboard already uses a specific folder. New folder names are converted to lowercase words joined with hyphens—`Family Visits` becomes `family-visits`. An explicitly configured folder that already exists is kept in place, preserving its media, indexes, and dashboard URLs.
 6. Save and restart the app.
 
 The app automatically stores dashboard media under `/config/www/icloud-albums`, creates `index.json` and `latest.jpg`, and adds the album to `albums.json`. You do not need to write YAML or choose output paths.
 
 Use the **Sync this album** switch to pause an album without losing its setup. The recommended sync and cleanup settings are already filled in. Network, retention, image-quality, catalog, and debug controls are grouped under **Advanced settings**.
 
-The Office dashboard matches a visitor's calendar event to the album `name`. A calendar event called **Dee coming to stay** selects the album named **Dee** for each day covered by that event. When no visitor album matches, it falls back to the `family` folder.
+Dashboard integrations are configured separately. This app supplies media and JSON catalogs; it does not install a dashboard or calendar integration.
 
 ## Album fields
 
@@ -50,7 +50,7 @@ Every album has these friendly fields:
 | --- | --- | --- |
 | `Display name` | Yes | Friendly name exposed to dashboards and used to generate a folder name. |
 | `Public iCloud link` | Yes | Full link copied after enabling **Public Website** in Apple Photos. |
-| `Folder name` | No | Stable dashboard folder. Leave blank to generate it from the display name. Values are automatically converted to lowercase, hyphenated folder names. |
+| `Folder name` | No | Stable dashboard folder. Leave blank to generate it from the display name. New folders are normalized; existing explicitly configured folders retain their names. |
 | `Sync this album` | No | Pause or resume an album without deleting it. |
 
 ## Safe mirror behavior
@@ -66,7 +66,46 @@ Mirror mode only removes recognized photo and video files after Apple has return
 
 ## Updating from an earlier version
 
-Version 1.1 replaces the raw YAML album box with a visual add/remove editor. Existing album entries continue to work. After updating, open **Configuration**, confirm each album appears as a row, and save once to store it in the new format.
+### Updating from 1.0.2 to 1.2.2
+
+This release changes the Home Assistant options schema. It is marked as a breaking version so automatic updates require attention. The sync engine can still read legacy YAML and top-level advanced options, but the Supervisor visual editor does not automatically convert a YAML string into album rows. Do not assume saving the new form preserves old fields.
+
+1. Stop the app. Back up its complete saved configuration privately, plus every destination media folder, including indexes, catalog, `latest.jpg`, and `.icloud_album_sync.json`. Home Assistant app backups may not include separately mounted `/config/www`, `/media`, or `/share` files; back those up explicitly.
+2. Confirm the host uses **amd64 or aarch64**. The former armv7 target is no longer offered; 32-bit installations must remain on the older release or migrate to a supported host.
+3. Update, then open Configuration. If `albums` remains a YAML text block, use **Edit in YAML** to replace that scalar with a list of mappings (remove the `|` and unindent its entries). Keep each original URL and every custom field. Do not replace your private links with the examples.
+4. Move top-level `timeout`, `keep_days`, `max_files`, `minimum_file_size_kb`, `minimum_long_edge`, `catalog_filename`, and `debug` into `advanced`. Keep `interval_minutes` and `mirror_missing` at the top level. Preserve the old values; new defaults must not silently replace retention choices.
+5. Preserve each album's `dest_mode`, `media_subfolder`, `album_subfolder`, `latest_filename`, `index_filename`, and per-album overrides. These optional legacy fields remain accepted by the schema. Existing explicitly configured folders are reused without renaming. New normalized names must be unique within the same destination root.
+6. Save, review the resulting rows and YAML, and restart. Verify media counts, catalog/index URLs and the next incremental sync. For the first verification run, consider `mirror_missing: false`, `keep_days: 0`, and `max_files: 0`; restore your chosen cleanup settings after checking the result.
+
+Example structure (synthetic link only):
+
+```yaml
+albums:
+  - name: Family Photos
+    shared_url: https://www.icloud.com/sharedalbum/#YOUR_PUBLIC_ALBUM_ID
+    dest_mode: config_www
+    media_subfolder: icloud-albums
+    album_subfolder: family
+    enabled: true
+interval_minutes: 180
+mirror_missing: false
+advanced:
+  timeout: 40
+  keep_days: 0
+  max_files: 0
+  minimum_file_size_kb: 100
+  minimum_long_edge: 1280
+  catalog_filename: albums.json
+  debug: false
+```
+
+The mount now explicitly maps `homeassistant_config` to `/config`; `/media` and `/share` remain writable. No media directory or index format migration is required. Current-format albums prefer an available JPEG meeting the quality floor, including for HEIC/RAW uploads. If Apple does not supply a qualifying JPEG, the original may still be selected; this app does not transcode it.
+
+For rollback, stop the app and restore the previous app version and its saved options together. Restore backed-up media/indexes if needed. Do not uninstall or delete destination folders as an upgrade step.
+
+### Validation still needed on a running Home Assistant host
+
+Verify a real 1.0.2 saved-options upgrade through Supervisor, editor save/restart, mount permissions, amd64/aarch64 container builds, incremental synchronization with both public-link styles, HEIC/RAW JPEG display, and dashboard URLs after folder preservation. Automated tests use synthetic responses and temporary files; they do not establish live Apple API or Supervisor behavior.
 
 ### Migrating from 0.4.3
 
@@ -89,7 +128,7 @@ The public album may only expose a small derivative for that item. Open **Advanc
 ### Dashboard does not discover a new guest album
 
 - Check that `/local/icloud-albums/albums.json` loads in Home Assistant.
-- Make the calendar visitor name and album `name` match; phrases such as “coming to stay” and “visiting” are ignored by the Office dashboard.
+- Check your dashboard integration separately; visitor/calendar matching is not part of this app.
 
 ### One album fails
 

@@ -83,6 +83,8 @@ def utc_now() -> str:
 
 
 def setup_logging(debug: bool) -> None:
+    # HTTP debug traces contain public album IDs and signed query tokens.
+    logging.getLogger("urllib3").setLevel(logging.WARNING)
     logging.basicConfig(
         level=logging.DEBUG if debug else logging.INFO,
         format="%(asctime)s %(levelname)s %(message)s",
@@ -155,7 +157,7 @@ def parse_albums(value: Any) -> list[dict[str, Any]]:
             else:
                 parsed = yaml.safe_load(normalize_single_line_yaml(stripped))
         except (json.JSONDecodeError, yaml.YAMLError) as error:
-            raise SyncError(f"Invalid albums configuration: {error}") from error
+            raise SyncError("Invalid albums configuration; check the album field syntax.") from error
     else:
         parsed = value
     if isinstance(parsed, dict):
@@ -177,6 +179,7 @@ def parse_albums(value: Any) -> list[dict[str, Any]]:
         normalized_album["name"] = name
         # Folders back the public dashboard URLs, so keep every configured value
         # predictable across macOS, Linux, and case-sensitive web paths.
+        normalized_album["_original_subfolder"] = str(normalized_album.get("album_subfolder") or "").strip()
         normalized_album["album_subfolder"] = slugify(
             str(normalized_album.get("album_subfolder") or name).strip()
         )
@@ -187,6 +190,9 @@ def parse_albums(value: Any) -> list[dict[str, Any]]:
         albums.append(normalized_album)
     if not albums:
         raise SyncError("At least one album must be enabled.")
+    destinations = [destination_for(album)[0].resolve() for album in albums]
+    if len({str(path).casefold() for path in destinations}) != len(destinations):
+        raise SyncError("Albums must use different destination folders; check normalized folder names.")
     return albums
 
 
@@ -355,7 +361,7 @@ class ICloudClient:
     def __init__(self, timeout: int) -> None:
         self.timeout = timeout
         self.session = requests.Session()
-        self.session.headers.update({"User-Agent": "HomeAssistant-iCloud-Shared-Album-Sync/1.0"})
+        self.session.headers.update({"User-Agent": "HomeAssistant-iCloud-Shared-Album-Sync/1.2.2"})
 
     def _post(self, url: str, payload: dict[str, Any]) -> dict[str, Any]:
         try:
@@ -363,7 +369,7 @@ class ICloudClient:
             response.raise_for_status()
             data = response.json()
         except (requests.RequestException, ValueError) as error:
-            raise SyncError(f"Apple request failed: {error}") from error
+            raise SyncError("Apple request failed; check connectivity and public album access.") from error
         if not isinstance(data, dict):
             raise SyncError("Apple returned an unexpected response.")
         return data
@@ -383,7 +389,7 @@ class ICloudClient:
             response.raise_for_status()
             data = response.json()
         except (requests.RequestException, ValueError) as error:
-            raise SyncError(f"Apple request failed: {error}") from error
+            raise SyncError("Apple request failed; check connectivity and public album access.") from error
         if not isinstance(data, dict):
             raise SyncError("Apple returned an unexpected response.")
         return data
@@ -418,7 +424,8 @@ class ICloudClient:
             not token
             or parsed_partition.scheme != "https"
             or not parsed_partition.hostname
-            or not parsed_partition.hostname.endswith(("ckdatabasews.icloud.com", "ckdatabasews.icloud.com.cn"))
+            or not any(parsed_partition.hostname == host or parsed_partition.hostname.endswith("." + host)
+                       for host in ("ckdatabasews.icloud.com", "ckdatabasews.icloud.com.cn"))
         ):
             raise SyncError("Apple returned an invalid public media endpoint.")
 
@@ -445,12 +452,14 @@ class ICloudClient:
         seen_markers: set[str] = set()
         while True:
             page = self._cloudkit_post(query_url, payload, query_params)
-            page_records = page.get("records") or []
+            page_records = page.get("records")
             if not isinstance(page_records, list):
                 raise SyncError("Apple's album response did not contain a media list.")
             records.extend(record for record in page_records if isinstance(record, dict))
             marker = str(page.get("continuationMarker") or "")
-            if not marker or marker in seen_markers:
+            if marker in seen_markers:
+                raise SyncError("Apple repeated a pagination marker; incomplete listing preserved locally.")
+            if not marker:
                 break
             seen_markers.add(marker)
             payload["continuationMarker"] = marker
@@ -481,7 +490,7 @@ class ICloudClient:
             base = f"https://{assigned_host}/{album_id}/sharedstreams"
             stream = self._post(f"{base}/webstream", payload)
 
-        photos = stream.get("photos") or []
+        photos = stream.get("photos")
         if not isinstance(photos, list):
             raise SyncError("Apple's album response did not contain a photo list.")
         if not photos:
@@ -539,7 +548,14 @@ def destination_for(album: dict[str, Any]) -> tuple[Path, str | None, Path]:
     album_subfolder = str(album.get("album_subfolder") or "").strip("/ ")
     if not album_subfolder or album_subfolder in {".", ".."} or "/" in album_subfolder:
         raise SyncError("album_subfolder must be one safe folder name.")
+    if ".." in Path(subfolder).parts:
+        raise SyncError("media_subfolder cannot traverse outside its configured root.")
     root = bases[mode] / subfolder if subfolder else bases[mode]
+    original = str(album.get("_original_subfolder") or "")
+    if original and original not in {".", ".."} and "/" not in original and "\\" not in original:
+        # Keep existing libraries and dashboard URLs in place; normalize new folders only.
+        if (root / original).is_dir():
+            album_subfolder = original
     destination = root / album_subfolder
     public_base = None
     if mode == "config_www":
@@ -581,7 +597,8 @@ def unique_filenames(items: Iterable[RemoteItem], previous: dict[str, Any], dest
     claimed: set[str] = set()
     for item in items:
         old_name = str(previous.get(item.guid, {}).get("filename") or "")
-        candidate = old_name if old_name and (destination / old_name).is_file() else item.filename
+        candidate = old_name if (old_name and Path(old_name).suffix.lower() == Path(item.filename).suffix.lower()
+                                 and (destination / old_name).is_file()) else item.filename
         folded = candidate.casefold()
         if folded in claimed:
             stem, suffix = os.path.splitext(candidate)
@@ -616,6 +633,8 @@ def download_item(session: requests.Session, item: RemoteItem, destination: Path
                     if chunk:
                         handle.write(chunk)
                         total += len(chunk)
+        if item.expected_size and total != item.expected_size:
+            raise SyncError("Downloaded media size did not match the remote listing.")
         if total < minimum_bytes:
             raise SyncError(f"Downloaded {item.filename} was only {total} bytes.")
         os.replace(temporary, destination)
@@ -689,8 +708,8 @@ def configured_value(album: dict[str, Any], global_config: dict[str, Any], key: 
 
 def sync_album(album: dict[str, Any], global_config: dict[str, Any]) -> tuple[AlbumResult, Path]:
     name = str(album.get("name") or album.get("album_subfolder") or "Album")
-    slug = str(album["album_subfolder"])
     destination, public_base, catalog_root = destination_for(album)
+    slug = destination.name
     destination.mkdir(parents=True, exist_ok=True)
     index_filename = str(album.get("index_filename") or "index.json")
     latest_value = album.get("latest_filename", "latest.jpg")
@@ -726,8 +745,11 @@ def sync_album(album: dict[str, Any], global_config: dict[str, Any]) -> tuple[Al
                 local_sizes[item.guid] = download_item(client.session, item, target, timeout, minimum_bytes)
                 logging.info("Downloaded: %s", filename)
             except (requests.RequestException, OSError, SyncError) as error:
-                failures.append(f"{filename}: {error}")
-                logging.error("Failed to download %s: %s", filename, error)
+                failures.append(f"{filename}: download failed; existing library preserved")
+                logging.error("Failed to download %s; existing library preserved.", filename)
+
+        if failures:
+            raise SyncError("One or more downloads failed; cleanup and index replacement skipped.")
 
         remote_names = {filenames[item.guid] for item in remote_items}
         protected = {index_filename, latest_filename or "", ".icloud_album_sync.json"}

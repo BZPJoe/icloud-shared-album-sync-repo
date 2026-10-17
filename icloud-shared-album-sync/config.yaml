@@ -8,6 +8,8 @@ arch:
   - amd64
 init: false
 startup: services
+breaking_versions:
+  - "1.2.2"
 map:
   - type: homeassistant_config
     read_only: false
@@ -38,6 +40,15 @@ schema:
       shared_url: url
       album_subfolder: str?
       enabled: bool?
+      dest_mode: list(config_www|media|share)?
+      media_subfolder: str?
+      latest_filename: str?
+      index_filename: str?
+      keep_days: int(0,)?
+      max_files: int(0,)?
+      mirror_missing: bool?
+      minimum_file_size_kb: int(0,)?
+      minimum_long_edge: int(0,)?
   interval_minutes: int
   mirror_missing: bool
   advanced:
