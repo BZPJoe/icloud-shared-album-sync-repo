@@ -424,8 +424,10 @@ class ICloudClient:
             not token
             or parsed_partition.scheme != "https"
             or not parsed_partition.hostname
-            or not any(parsed_partition.hostname == host or parsed_partition.hostname.endswith("." + host)
-                       for host in ("ckdatabasews.icloud.com", "ckdatabasews.icloud.com.cn"))
+            or not re.fullmatch(
+                r"(?:p[0-9]+-|[a-z0-9-]+\.)?ckdatabasews\.icloud\.com(?:\.cn)?",
+                parsed_partition.hostname or "",
+            )
         ):
             raise SyncError("Apple returned an invalid public media endpoint.")
 
