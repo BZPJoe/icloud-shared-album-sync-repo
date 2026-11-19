@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.2.3
+
+- Accept Apple numbered CloudKit partition hosts while preserving existing trusted base-host and subdomain support for both iCloud domains.
+- Retain HTTPS and nonempty-token validation and add regression coverage for malicious endpoint lookalikes.
+- Resolve the reported invalid public media endpoint error for numbered partitions.
+
 ## 1.2.2
 
 - Normalize new custom folder names to lowercase dashboard-safe slugs; reuse existing configured folders without renaming their media or dashboard paths.

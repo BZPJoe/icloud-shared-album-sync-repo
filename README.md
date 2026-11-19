@@ -22,7 +22,7 @@ This Home Assistant app downloads the best available photo or video for every it
 - Works with both current `photos.icloud.com/shared/album/…` links and legacy iCloud Public Website links
 - Works with `/config/www`, `/media`, or `/share`
 
-Current release: **1.2.2**. Upgrading from 1.0.2 changes the options schema and supported architectures; read the [migration instructions](icloud-shared-album-sync/DOCS.md#updating-from-102-to-122) before updating.
+Current release: **1.2.3**. Upgrading from 1.0.2 changes the options schema and supported architectures; read the [migration instructions](icloud-shared-album-sync/DOCS.md#updating-from-102-to-122) before updating.
 
 ## Install
 
